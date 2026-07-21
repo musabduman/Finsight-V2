@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinSight AI</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Header with login/signup at top left -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>FinSight AI</h1>
+                <div class="auth-buttons">
+                    <button id="loginBtn">Giriş Yap</button>
+                    <button id="signupBtn">Kayıt Ol</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main>
+        <!-- Hero section with minimal info -->
+        <section class="hero">
+            <div class="container">
+                <h2>Yapay Zeka ile Hisse Senedi Yatırımlarını Öğren</h2>
+                <p>FinSight AI ile finansal piyasaları anlamak, yatırım strategileri geliştirmek ve bilinçli kararlar almak artık daha kolay.</p>
+            </div>
+        </section>
+
+        <!-- Tabbed interface -->
+        <section class="tabs-section">
+            <div class="container">
+                <div class="tab-container">
+                    <button class="tab-btn active" data-tab="home-tab">Ana Sayfa</button>
+                    <button class="tab-btn" data-tab="chatbot-tab">Chatbot (Pro)</button>
+                    <button class="tab-btn" data-tab="profile-tab">Profil</button>
+                </div>
+                
+                <div class="tab-content" id="home-tab">
+                    <div class="daily-stocks">
+                        <h3>Günlük Hisse Yorumları</h3>
+                        <p>Bugünün öne çıkan hisse senetleri ve analizleri:</p>
+                        <ul class="stocks-list">
+                            <li><span class="stock-name">THYAO</span> <span class="stock-change positive">+2.3%</span> - Havacılık sektöründe güçlü performans</li>
+                            <li><span class="stock-name">AKBNK</span> <span class="stock-change negative">-0.8%</span> - Faiz kararları öncesi konsolidasyon</li>
+                            <li><span class="stock-name">EREGL</span> <span class="stock-change positive">+1.5%</span> - Demir-çelik talebinde iyileşme</li>
+                        </ul>
+                        <p class="free-users-note">Bu özellik ücretsiz kullanıcılar için mevcuttur.</p>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="chatbot-tab">
+                    <div class="pro-warning">
+                        <h3>Yapay Zeka Destekli Danışman</h3>
+                        <p>Bu özellik sadece Pro planda mevcuttur. FinSight AI Chatbot ile:</p>
+                        <ul class="pro-features">
+                            <li>7/24 finansal danışmanlık</li>
+                            <li>Kişisel portföy önerileri</li>
+                            <li>Piyasalarla ilgili anlık yanıtlar</li>
+                            <li>Öğrenme modülleri ve eğitim içerikleri</li>
+                        </ul>
+                        <button class="primary-btn" id="upgradeBtn">Pro Plana Geç</button>
+                    </div>
+                    <div class="chatbot-placeholder">
+                        <p>Chatbot arayüzü burada görünecektir.</p>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="profile-tab">
+                    <div class="profile-section">
+                        <h3>Profilim</h3>
+                        <p>Bu bölüm, giriş yaptıktan sonra profil bilgilerinizi görüntüleyebileceğiniz ve güncelleyebileceğiniz bölümdür.</p>
+                        <p class="login-required">Şu anda oturum açmadıysanız, lütfen giriş yapın.</p>
+                        <form id="profileForm">
+                            <div class="form-group">
+                                <label for="fullName">Ad Soyad:</label>
+                                <input type="text" id="fullName" placeholder="Adınız ve Soyadınız" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">E-posta:</label>
+                                <input type="email" id="email" placeholder="E-posta adresiniz" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Telefon:</label>
+                                <input type="tel" id="phone" placeholder="Telefon numaranız">
+                            </div>
+                            <div class="form-group">
+                                <label for="bio">Hakkınızda:</label>
+                                <textarea id="bio" placeholder="Kısa bir bio yazın" rows="4"></textarea>
+                            </div>
+                            <button type="submit" class="primary-btn">Profili Güncelle</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features section -->
+        <section class="features-section">
+            <div class="container">
+                <h2>FinSight AI Özellikleri</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <h4>Günlük Analizler</h4>
+                        <p>Hisse senedi yorumları ve teknik analizler</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Yapay Zeka Chatbot</h4>
+                        <li>Pro plan kullanıcıları için 7/24 destek</li>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Portföy Yönetimi</h4>
+                        <p>Kişisel yatırım portföyünüzü takip ve optimizasyon</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Öğrenme Kaynakları</h4>
+                        <p>Finansal okuryazarlığını artıran eğitim içerikleri</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact section -->
+        <section class="contact-section">
+            <div class="container">
+                <h2>Bizimle İletişime Geçin</h2>
+                <form id="contactForm">
+                    <div class="form-row">
+                        <input type="text" placeholder="Adınız" required>
+                        <input type="email" placeholder="E-posta Adresiniz" required>
+                    </div>
+                    <textarea placeholder="Mesajınız" rows="5" required></textarea>
+                    <button type="submit">Mesajı Gönder</button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 FinSight AI. Tüm hakları saklıdır.</p>
+            <div class="footer-links">
+                <a href="#">Gizlilik Politikası</a>
+                <a href="#">Kullanım Şartları</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

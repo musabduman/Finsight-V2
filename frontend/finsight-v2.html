@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinSight — BIST hareketlerini geçmişten oku</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0F1720;
+    --ink-2:#161f2b;
+    --paper:#F2EEE3;
+    --paper-dim:#c9c4b6;
+    --green:#3FA796;
+    --red:#D6584C;
+    --gold:#C9A227;
+    --line: rgba(242,238,227,0.12);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    line-height:1.55;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:0 32px;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .display{font-family:'Fraunces',serif;}
+
+  /* Nav */
+  nav{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:28px 0;border-bottom:1px solid var(--line);
+  }
+  .logo{
+    font-family:'Fraunces',serif;font-weight:600;font-size:1.25rem;
+    display:flex;align-items:baseline;gap:10px;
+  }
+  .logo .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:0.68rem;letter-spacing:0.12em;
+    color:var(--gold);text-transform:uppercase;font-weight:500;
+  }
+  .nav-links{display:flex;gap:36px;align-items:center;}
+  .nav-links a{color:var(--paper-dim);text-decoration:none;font-size:0.92rem;transition:color .2s;}
+  .nav-links a:hover, .nav-links a.active{color:var(--paper);}
+  .nav-cta{
+    background:var(--gold);color:var(--ink);padding:10px 20px;border-radius:2px;
+    font-size:0.88rem;font-weight:600;text-decoration:none;border:none;cursor:pointer;font-family:inherit;
+  }
+  .nav-toggle{display:none;background:none;border:none;color:var(--paper);font-size:1.4rem;cursor:pointer;}
+  .nav-links.open{
+    display:flex;flex-direction:column;align-items:flex-start;gap:18px;
+    position:absolute;top:78px;left:0;right:0;background:var(--ink-2);
+    padding:24px 32px;border-bottom:1px solid var(--line);z-index:10;
+  }
+
+  /* Hero */
+  .hero{
+    display:grid;grid-template-columns:1fr 1fr;gap:64px;
+    padding:96px 0 88px;align-items:center;
+  }
+  .hero h1{
+    font-size:3.1rem;font-weight:500;line-height:1.12;letter-spacing:-0.01em;
+    margin-bottom:24px;
+  }
+  .hero h1 em{font-style:italic;color:var(--gold);}
+  .hero p{color:var(--paper-dim);font-size:1.08rem;max-width:440px;margin-bottom:36px;}
+  .hero-ctas{display:flex;gap:16px;}
+  .btn-primary{
+    background:var(--gold);color:var(--ink);padding:14px 26px;border-radius:2px;
+    font-weight:600;font-size:0.95rem;text-decoration:none;border:none;cursor:pointer;
+  }
+  .btn-ghost{
+    background:transparent;color:var(--paper);padding:14px 22px;border-radius:2px;
+    font-weight:500;font-size:0.95rem;text-decoration:none;border:1px solid var(--line);cursor:pointer;
+  }
+
+  /* Signature: annotated chart card */
+  .chart-card{
+    background:var(--paper);color:var(--ink);border-radius:4px;
+    padding:28px 28px 22px;position:relative;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.5);
+  }
+  .chart-card .ticker-row{
+    display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;
+  }
+  .chart-card .ticker{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:1.05rem;}
+  .chart-card .chg{font-family:'IBM Plex Mono',monospace;font-size:1.05rem;color:var(--green);font-weight:500;}
+  .chart-card .date{font-size:0.78rem;color:#6b6555;margin-bottom:18px;}
+  .chart-svg{width:100%;height:auto;display:block;}
+  .callout{
+    position:absolute;background:var(--ink);color:var(--paper);
+    padding:10px 14px;border-radius:3px;font-size:0.78rem;line-height:1.4;
+    max-width:190px;top:74px;right:24px;
+  }
+  .callout::after{
+    content:'';position:absolute;left:-6px;top:22px;
+    border-width:6px 6px 6px 0;border-style:solid;
+    border-color:transparent var(--ink) transparent transparent;
+  }
+  .callout .lbl{color:var(--gold);font-family:'IBM Plex Mono',monospace;font-size:0.65rem;letter-spacing:0.06em;text-transform:uppercase;display:block;margin-bottom:3px;}
+
+  /* Daily section */
+  .section{padding:88px 0;border-top:1px solid var(--line);}
+  .section-head{margin-bottom:48px;max-width:560px;}
+  .section-head .kicker{
+    font-family:'IBM Plex Mono',monospace;color:var(--gold);font-size:0.72rem;
+    letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px;display:block;
+  }
+  .section-head h2{font-size:2rem;font-weight:500;letter-spacing:-0.01em;margin-bottom:14px;}
+  .section-head p{color:var(--paper-dim);}
+
+  .stock-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);}
+  .stock-card{background:var(--ink);padding:26px 24px;cursor:pointer;transition:background .2s;}
+  .stock-card:hover{background:var(--ink-2);}
+  .stock-card .row1{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;}
+  .stock-card .sym{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:1.15rem;}
+  .stock-card .pct{font-family:'IBM Plex Mono',monospace;font-size:0.92rem;padding:3px 9px;border-radius:2px;}
+  .pct.up{color:var(--green);background:rgba(63,167,150,0.12);}
+  .pct.down{color:var(--red);background:rgba(214,88,76,0.12);}
+  .stock-card .why{color:var(--paper-dim);font-size:0.88rem;}
+  .stock-card .tag{
+    display:inline-block;margin-top:14px;font-family:'IBM Plex Mono',monospace;
+    font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:#5b6472;
+  }
+
+  /* Chatbot preview */
+  .chat-mock{
+    background:var(--ink-2);border:1px solid var(--line);border-radius:4px;padding:32px;
+    max-width:640px;
+  }
+  .bubble{padding:14px 18px;border-radius:3px;margin-bottom:14px;font-size:0.92rem;max-width:80%;}
+  .bubble.user{background:transparent;border:1px solid var(--line);margin-left:auto;color:var(--paper-dim);}
+  .bubble.bot{background:var(--paper);color:var(--ink);}
+  .bubble.bot .lbl{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--gold);letter-spacing:0.08em;display:block;margin-bottom:6px;}
+  .bubble.typing{display:flex;gap:5px;align-items:center;width:fit-content;}
+  .bubble.typing span{width:6px;height:6px;border-radius:50%;background:var(--ink);opacity:.4;animation:blink 1.2s infinite;}
+  .bubble.typing span:nth-child(2){animation-delay:.2s;}
+  .bubble.typing span:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,80%,100%{opacity:.25;}40%{opacity:.8;}}
+  .chat-input-row{display:flex;gap:10px;margin-top:20px;}
+  .chat-input-row input{
+    flex:1;background:var(--ink);border:1px solid var(--line);color:var(--paper);
+    padding:12px 16px;border-radius:3px;font-family:'Inter',sans-serif;font-size:0.9rem;
+  }
+  .chat-input-row input:focus{outline:none;border-color:var(--gold);}
+  .chat-input-row input::placeholder{color:#5b6472;}
+  .chat-send{
+    background:var(--gold);color:var(--ink);border:none;padding:0 20px;border-radius:3px;
+    font-weight:600;font-size:0.88rem;cursor:pointer;font-family:inherit;
+  }
+  .chat-hint{font-size:0.74rem;color:#5b6472;margin-top:10px;font-family:'IBM Plex Mono',monospace;}
+
+  /* Pricing */
+  .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);}
+  .price-card{background:var(--ink);padding:36px 32px;}
+  .price-card.pro{background:var(--paper);color:var(--ink);}
+  .price-card .plan{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
+  .price-card .amount{font-family:'Fraunces',serif;font-size:2.2rem;font-weight:500;margin-bottom:22px;}
+  .price-card .amount span{font-size:0.95rem;font-weight:400;font-family:'Inter',sans-serif;opacity:.6;}
+  .price-card ul{list-style:none;}
+  .price-card li{padding:9px 0;border-top:1px solid var(--line);font-size:0.88rem;}
+  .price-card.pro li{border-top:1px solid rgba(15,23,32,0.12);}
+
+  footer{border-top:1px solid var(--line);padding:36px 0;color:var(--paper-dim);font-size:0.82rem;display:flex;justify-content:space-between;}
+
+  /* Floating widget */
+  .fab{
+    position:fixed;bottom:28px;right:28px;width:56px;height:56px;border-radius:50%;
+    background:var(--gold);border:none;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,0.4);
+    font-size:1.4rem;z-index:40;display:flex;align-items:center;justify-content:center;
+    transition:transform .2s;
+  }
+  .fab:hover{transform:scale(1.06);}
+
+  .panel-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.4);opacity:0;pointer-events:none;
+    transition:opacity .25s;z-index:45;
+  }
+  .panel-overlay.open{opacity:1;pointer-events:auto;}
+
+  .side-panel{
+    position:fixed;top:0;right:0;bottom:0;width:400px;max-width:92vw;
+    background:var(--ink-2);border-left:1px solid var(--line);
+    transform:translateX(100%);transition:transform .3s ease;
+    z-index:46;display:flex;flex-direction:column;
+  }
+  .side-panel.open{transform:translateX(0);}
+
+  .panel-header{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:22px 24px;border-bottom:1px solid var(--line);
+  }
+  .panel-title{display:flex;align-items:center;gap:10px;font-size:1.1rem;}
+  .plan-badge{
+    font-family:'IBM Plex Mono',monospace;font-size:0.65rem;letter-spacing:0.06em;
+    text-transform:uppercase;color:var(--gold);border:1px solid var(--gold);
+    padding:2px 8px;border-radius:10px;
+  }
+  .panel-close{background:none;border:none;color:var(--paper-dim);font-size:1.1rem;cursor:pointer;}
+
+  .panel-body{padding:24px;overflow-y:auto;flex:1;display:flex;flex-direction:column;}
+  .panel-lead{color:var(--paper-dim);font-size:0.9rem;margin-bottom:22px;}
+
+  .auth-form{display:flex;flex-direction:column;gap:10px;}
+  .auth-form label{font-size:0.76rem;color:var(--paper-dim);font-family:'IBM Plex Mono',monospace;margin-top:6px;}
+  .auth-form input{
+    background:var(--ink);border:1px solid var(--line);color:var(--paper);
+    padding:11px 14px;border-radius:3px;font-family:'Inter',sans-serif;font-size:0.9rem;
+  }
+  .auth-form input:focus{outline:none;border-color:var(--gold);}
+
+  .link-btn{
+    background:none;border:none;color:var(--paper-dim);text-decoration:underline;
+    font-size:0.82rem;cursor:pointer;font-family:'Inter',sans-serif;padding:10px 0;text-align:center;
+  }
+  .link-btn:hover{color:var(--paper);}
+  .link-btn.small{padding:0;font-size:0.76rem;}
+  .panel-divider{
+    text-align:center;color:#5b6472;font-size:0.72rem;margin:14px 0;
+    font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;
+  }
+
+  .panel-chat{padding-top:18px;}
+  .usage-row{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:0.78rem;color:var(--paper-dim);font-family:'IBM Plex Mono',monospace;
+    padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--line);
+  }
+  .panel-chat .bubble-log{flex:1;overflow-y:auto;margin-bottom:12px;}
+  .panel-chat .bubble{max-width:92%;}
+  .limit-notice{
+    background:rgba(201,162,39,0.12);border:1px solid var(--gold);border-radius:3px;
+    padding:14px;font-size:0.84rem;text-align:center;
+  }
+  .limit-notice a, .limit-notice button{color:var(--gold);font-weight:600;text-decoration:underline;background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;}
+
+  @media(max-width:860px){
+    .hero{grid-template-columns:1fr;padding:56px 0;}
+    .hero h1{font-size:2.2rem;}
+    .stock-grid,.price-grid{grid-template-columns:1fr;}
+    .nav-links{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <nav>
+    <div class="logo">FinSight <span class="eyebrow">BIST · geçmişi oku</span></div>
+    <div class="nav-links" id="navLinks">
+      <a href="#gunluk" data-section="gunluk">Günlük</a>
+      <a href="#chatbot" data-section="chatbot">Chatbot</a>
+      <a href="#fiyat" data-section="fiyat">Fiyatlandırma</a>
+      <button class="nav-cta" id="ctaBtn">Ücretsiz başla</button>
+    </div>
+    <button class="nav-toggle" id="navToggle" aria-label="Menü">☰</button>
+  </nav>
+
+  <section class="hero">
+    <div>
+      <h1 class="display">Hisseler <em>neden</em><br>hareket etti,<br>öğren.</h1>
+      <p>FinSight geleceği tahmin etmez. BIST'te bir hisse hareket ettiğinde, geçmiş veri ve haber akışına bakarak nedenini sana açık dille anlatır — grafiğin üstünde, tam olayın olduğu yerde.</p>
+      <div class="hero-ctas">
+        <a class="btn-primary" href="#gunluk">Bugünün hisselerine bak</a>
+        <a class="btn-ghost" href="#chatbot">Chatbot'u dene</a>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="ticker-row">
+        <span class="ticker">THYAO</span>
+        <span class="chg">+7.4%</span>
+      </div>
+      <div class="date">14 Temmuz 2026 · günlük kapanış</div>
+      <svg class="chart-svg" viewBox="0 0 420 160">
+        <polyline points="0,120 40,118 80,122 120,110 160,112 200,60 240,50 280,40 320,44 360,30 400,26"
+          fill="none" stroke="#0F1720" stroke-width="2"/>
+        <circle cx="200" cy="60" r="4" fill="#C9A227"/>
+        <line x1="200" y1="60" x2="200" y2="10" stroke="#C9A227" stroke-width="1" stroke-dasharray="3,3"/>
+      </svg>
+      <div class="callout" style="top:14px; right:10px;">
+        <span class="lbl">14 Tem</span>
+        Yolcu sayısı rekoru açıklandı, hacim 3 katına çıktı
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="section" id="gunluk">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="kicker">Ücretsiz plan</span>
+      <h2 class="display">Bugün öne çıkan 3 hisse</h2>
+      <p>Her gün, en çok hareket eden hisseler arasından seçiyoruz. Sebebini biz anlatıyoruz, yorumu sen yapıyorsun.</p>
+    </div>
+    <div class="stock-grid">
+      <div class="stock-card" data-symbol="THYAO" data-summary="THYAO bugün %7.4 yükseldi. Temmuz yolcu istatistikleri beklentinin üzerinde geldi, hacim ortalamanın 3 katına çıktı.">
+        <div class="row1"><span class="sym">THYAO</span><span class="pct up">+7.4%</span></div>
+        <p class="why">Temmuz yolcu istatistikleri beklentinin üzerinde geldi, hacim ortalamanın 3 katına çıktı.</p>
+        <span class="tag">havacılık</span>
+      </div>
+      <div class="stock-card" data-symbol="AKBNK" data-summary="AKBNK bugün %1.9 geriledi. TCMB faiz kararı öncesi bankacılık endeksinde genel çekingenlik görüldü.">
+        <div class="row1"><span class="sym">AKBNK</span><span class="pct down">−1.9%</span></div>
+        <p class="why">TCMB faiz kararı öncesi bankacılık endeksinde genel çekingenlik görüldü.</p>
+        <span class="tag">bankacılık</span>
+      </div>
+      <div class="stock-card" data-symbol="EREGL" data-summary="EREGL bugün %2.1 yükseldi. Çelik ihracat fiyatlarında Avrupa talebine bağlı toparlanma sinyali var.">
+        <div class="row1"><span class="sym">EREGL</span><span class="pct up">+2.1%</span></div>
+        <p class="why">Çelik ihracat fiyatlarında Avrupa talebine bağlı toparlanma sinyali.</p>
+        <span class="tag">demir-çelik</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="chatbot">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="kicker">Pro plan</span>
+      <h2 class="display">Kendi hisseni sor</h2>
+      <p>Portföyünde bir hisse mi var? Neden düştüğünü, neden yükseldiğini sor — grafik ve haberle birlikte açıklayalım.</p>
+    </div>
+    <div class="chat-mock">
+      <div class="bubble-log">
+        <div class="bubble user">ASTOR neden düştü bu hafta?</div>
+        <div class="bubble bot">
+          <span class="lbl">FinSight</span>
+          ASTOR bu hafta %5.2 geriledi. 12 Temmuz'da açıklanan ihracat rakamları beklentinin altında kaldı ve aynı gün sektör genelinde kâr satışı görüldü. Geçmişte benzer haber akışlarının 2–3 gün sürdüğü gözlemleniyor.
+        </div>
+      </div>
+      <button class="btn-primary" id="openChatFromSection" style="margin-top:20px;">Şimdi bir hisse sor →</button>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="fiyat">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="kicker">Fiyatlandırma</span>
+      <h2 class="display">Basit iki plan</h2>
+    </div>
+    <div class="price-grid">
+      <div class="price-card">
+        <div class="plan">Ücretsiz</div>
+        <div class="amount">0₺</div>
+        <ul>
+          <li>Günlük 3 hisse özeti</li>
+          <li>Günde 20 chatbot sorusu</li>
+          <li>Sadece günün hisseleri</li>
+        </ul>
+      </div>
+      <div class="price-card pro">
+        <div class="plan">Pro</div>
+        <div class="amount">179₺ <span>/ay</span></div>
+        <ul>
+          <li>İstediğin hisseyi sorgula</li>
+          <li>Sınırsız chatbot sorusu</li>
+          <li>Grafikli + haberli detay</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <footer>
+    <span>© 2026 FinSight</span>
+    <span class="mono">yatırım tavsiyesi değildir — tarihsel örüntü bilgisidir</span>
+  </footer>
+</div>
+
+<!-- Floating chat widget -->
+<button class="fab" id="fabBtn" aria-label="Chatbot'u aç">
+  <span class="fab-icon">💬</span>
+</button>
+
+<div class="panel-overlay" id="panelOverlay"></div>
+<aside class="side-panel" id="sidePanel">
+  <div class="panel-header">
+    <div class="panel-title">
+      <span class="display">FinSight</span>
+      <span class="plan-badge" id="planBadge">Misafir</span>
+    </div>
+    <button class="panel-close" id="panelClose">✕</button>
+  </div>
+
+  <!-- Login view -->
+  <div class="panel-body" id="loginView">
+    <p class="panel-lead">Giriş yap, günlük 20 soru hakkınla sınırsız hisse sorgula.</p>
+    <div class="auth-form">
+      <label>E-posta</label>
+      <input type="email" id="authEmail" placeholder="ornek@eposta.com">
+      <label>Şifre</label>
+      <input type="password" id="authPassword" placeholder="••••••••">
+      <button class="btn-primary" id="authSubmit" style="width:100%;margin-top:6px;">Giriş yap</button>
+      <button class="btn-ghost" id="authGoogle" style="width:100%;">Google ile devam et</button>
+      <button class="link-btn" id="authSwitchSignup">Hesabın yok mu? Kayıt ol</button>
+    </div>
+    <div class="panel-divider">veya</div>
+    <button class="link-btn" id="continueGuest">Giriş yapmadan devam et (3 ücretsiz soru)</button>
+  </div>
+
+  <!-- Chat view -->
+  <div class="panel-body panel-chat" id="chatView" style="display:none;">
+    <div class="usage-row">
+      <span id="usageText">0/3 soru kullanıldı</span>
+      <button class="link-btn small" id="logoutBtn">Çıkış yap</button>
+    </div>
+    <div class="bubble-log" id="chatLog"></div>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="Bir hisse sor, örn: THYAO neden yükseldi?">
+      <button class="chat-send" id="chatSend">Sor</button>
+    </div>
+    <div class="chat-hint">demo modu — gerçek cevaplar backend bağlanınca gelecek</div>
+  </div>
+</aside>
+
+<script>
+  // Mobile nav toggle
+  const navToggle = document.getElementById('navToggle');
+  const navLinks = document.getElementById('navLinks');
+  navToggle.addEventListener('click', () => navLinks.classList.toggle('open'));
+  navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => navLinks.classList.remove('open')));
+
+  // Scroll-spy for nav active state
+  const sections = document.querySelectorAll('.section[id]');
+  const navAnchors = navLinks.querySelectorAll('a[data-section]');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      const rect = s.getBoundingClientRect();
+      if (rect.top <= 120 && rect.bottom > 120) current = s.id;
+    });
+    navAnchors.forEach(a => a.classList.toggle('active', a.dataset.section === current));
+  });
+
+  // ---- Floating panel: open/close ----
+  const fabBtn = document.getElementById('fabBtn');
+  const sidePanel = document.getElementById('sidePanel');
+  const panelOverlay = document.getElementById('panelOverlay');
+  const panelClose = document.getElementById('panelClose');
+  const loginView = document.getElementById('loginView');
+  const chatView = document.getElementById('chatView');
+  const planBadge = document.getElementById('planBadge');
+
+  document.getElementById('ctaBtn').addEventListener('click', () => openPanel());
+
+  function openPanel(prefillQuestion) {
+    sidePanel.classList.add('open');
+    panelOverlay.classList.add('open');
+    if (prefillQuestion) {
+      if (state.loggedIn || state.guestCount < GUEST_LIMIT) {
+        showChatView();
+        respondTo(prefillQuestion);
+      } else {
+        showLoginView();
+      }
+    }
+  }
+  function closePanel() {
+    sidePanel.classList.remove('open');
+    panelOverlay.classList.remove('open');
+  }
+  fabBtn.addEventListener('click', () => openPanel());
+  panelClose.addEventListener('click', closePanel);
+  panelOverlay.addEventListener('click', closePanel);
+  document.getElementById('openChatFromSection').addEventListener('click', () => openPanel());
+
+  // ---- Mock auth + usage state ----
+  const GUEST_LIMIT = 3;
+  const FREE_LIMIT = 20;
+  const state = { loggedIn: false, guestCount: 0, usedCount: 0 };
+
+  function showLoginView() {
+    loginView.style.display = 'flex';
+    chatView.style.display = 'none';
+  }
+  function showChatView() {
+    loginView.style.display = 'none';
+    chatView.style.display = 'flex';
+    updateUsageText();
+  }
+  function updateUsageText() {
+    const usageText = document.getElementById('usageText');
+    if (state.loggedIn) {
+      usageText.textContent = `${state.usedCount}/${FREE_LIMIT} soru kullanıldı`;
+      planBadge.textContent = 'Free plan';
+    } else {
+      usageText.textContent = `${state.guestCount}/${GUEST_LIMIT} misafir sorusu kullanıldı`;
+      planBadge.textContent = 'Misafir';
+    }
+  }
+
+  document.getElementById('continueGuest').addEventListener('click', () => {
+    showChatView();
+    if (chatLogEl().children.length === 0) {
+      addBubble('Merhaba! Bir hisse hakkında soru sorabilirsin — örneğin "THYAO neden yükseldi?"', 'bot', 'FinSight');
+    }
+  });
+
+  document.getElementById('authSubmit').addEventListener('click', () => {
+    const email = document.getElementById('authEmail').value.trim();
+    if (!email) { document.getElementById('authEmail').focus(); return; }
+    state.loggedIn = true;
+    state.usedCount = 0;
+    showChatView();
+    addBubble(`Tekrar hoş geldin! Günde ${FREE_LIMIT} soru hakkın var.`, 'bot', 'FinSight');
+  });
+  document.getElementById('authGoogle').addEventListener('click', () => {
+    state.loggedIn = true;
+    state.usedCount = 0;
+    showChatView();
+    addBubble(`Google ile giriş yapıldı. Günde ${FREE_LIMIT} soru hakkın var.`, 'bot', 'FinSight');
+  });
+  document.getElementById('authSwitchSignup').addEventListener('click', () => {
+    document.getElementById('authSubmit').textContent = 'Kayıt ol';
+    document.querySelector('.panel-lead').textContent = 'Hesap oluştur, günlük 20 soru hakkın hemen aktif olsun.';
+  });
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    state.loggedIn = false;
+    chatLogEl().innerHTML = '';
+    showLoginView();
+  });
+
+  // ---- Chat logic (shared) ----
+  const chatInput = document.getElementById('chatInput');
+  const chatSend = document.getElementById('chatSend');
+  function chatLogEl(){ return document.getElementById('chatLog'); }
+
+  const knownAnswers = {
+    THYAO: "THYAO bugün %7.4 yükseldi. Temmuz yolcu istatistikleri beklentinin üzerinde geldi ve işlem hacmi ortalamanın 3 katına çıktı. Geçmişte benzer rekor açıklamalarının birkaç gün etkisini sürdürdüğü gözlemleniyor.",
+    AKBNK: "AKBNK bugün %1.9 geriledi. TCMB faiz kararı öncesi bankacılık endeksi genelinde temkinli bir hareket görüldü, tek başına şirkete özgü bir gelişme değil.",
+    EREGL: "EREGL bugün %2.1 yükseldi. Avrupa'da çelik talebine dair toparlanma sinyalleri ihracat fiyatlarını destekledi.",
+    ASTOR: "ASTOR bu hafta %5.2 geriledi. 12 Temmuz'da açıklanan ihracat rakamları beklentinin altında kaldı ve aynı gün sektör genelinde kâr satışı görüldü."
+  };
+
+  function addBubble(text, type, label) {
+    const div = document.createElement('div');
+    div.className = 'bubble ' + type;
+    if (label) {
+      const lbl = document.createElement('span');
+      lbl.className = 'lbl';
+      lbl.textContent = label;
+      div.appendChild(lbl);
+      div.appendChild(document.createTextNode(text));
+    } else {
+      div.textContent = text;
+    }
+    chatLogEl().appendChild(div);
+    chatLogEl().scrollTop = chatLogEl().scrollHeight;
+    return div;
+  }
+
+  function showLimitReached() {
+    const div = document.createElement('div');
+    div.className = 'limit-notice';
+    div.innerHTML = state.loggedIn
+      ? `Bugünkü ${FREE_LIMIT} soru hakkın doldu. <button id="upsellBtn">Pro'ya geç</button>, sınırsız sor.`
+      : `Misafir sorunu doldu. <button id="loginFromLimit">Giriş yap</button>, günde ${FREE_LIMIT} soru kazan.`;
+    chatLogEl().appendChild(div);
+    chatLogEl().scrollTop = chatLogEl().scrollHeight;
+    if (!state.loggedIn) {
+      document.getElementById('loginFromLimit').addEventListener('click', showLoginView);
+    } else {
+      document.getElementById('upsellBtn').addEventListener('click', () => {
+        closePanel();
+        document.getElementById('fiyat').scrollIntoView({behavior:'smooth'});
+      });
+    }
+  }
+
+  function respondTo(question) {
+    if (!state.loggedIn && state.guestCount >= GUEST_LIMIT) { showLimitReached(); return; }
+    if (state.loggedIn && state.usedCount >= FREE_LIMIT) { showLimitReached(); return; }
+
+    addBubble(question, 'user');
+    if (state.loggedIn) { state.usedCount++; } else { state.guestCount++; }
+    updateUsageText();
+
+    const typing = document.createElement('div');
+    typing.className = 'bubble bot typing';
+    typing.innerHTML = '<span></span><span></span><span></span>';
+    chatLogEl().appendChild(typing);
+    chatLogEl().scrollTop = chatLogEl().scrollHeight;
+
+    setTimeout(() => {
+      typing.remove();
+      const upper = question.toUpperCase();
+      const match = Object.keys(knownAnswers).find(sym => upper.includes(sym));
+      const answer = match
+        ? knownAnswers[match]
+        : "Bu demo sürümde yalnızca THYAO, AKBNK, EREGL ve ASTOR için örnek cevaplar var. Gerçek sürümde her hisse için canlı veri ve haber taraması kullanılacak.";
+      addBubble(answer, 'bot', 'FinSight');
+      if ((state.loggedIn && state.usedCount >= FREE_LIMIT) || (!state.loggedIn && state.guestCount >= GUEST_LIMIT)) {
+        showLimitReached();
+      }
+    }, 900);
+  }
+
+  chatSend.addEventListener('click', () => {
+    const q = chatInput.value.trim();
+    if (!q) return;
+    respondTo(q);
+    chatInput.value = '';
+  });
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') chatSend.click();
+  });
+
+  // Clicking a stock card opens the panel and asks about it
+  document.querySelectorAll('.stock-card').forEach(card => {
+    card.addEventListener('click', () => {
+      openPanel(card.dataset.symbol + ' neden bu şekilde hareket etti?');
+    });
+  });
+</script>
+</body>
+</html>

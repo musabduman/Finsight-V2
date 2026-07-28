@@ -2,7 +2,7 @@ import os
 import jwt
 from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException
-from schemas import UserRegister, UserLogin
+from backend.database.schema import UserRegister, UserLogin
 from backend.database.db import get_db_connection, hash_password, verify_password
 
 router = APIRouter()

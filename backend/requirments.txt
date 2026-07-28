@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
+gunicorn
 psycopg2-binary
 bcrypt
 pyjwt
@@ -7,3 +8,4 @@ pydantic[email]
 python-dotenv
 requests
 yfinance
+ollama

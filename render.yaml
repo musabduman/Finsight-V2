@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: finsight-api
+    runtime: python
+    # Render proje kökünden çalışır; backend paketi olarak import edilir
+    buildCommand: pip install -r backend/requirments.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      # Supabase Transaction Pooler URI — Render Dashboard'dan girilecek
+      - key: DATABASE_URL
+        sync: false
+      # JWT imzalama anahtarı — güçlü ve rastgele bir string gir
+      - key: JWT_SECRET
+        sync: false
+      # Ollama Cloud API key
+      - key: OLLAMA_API_KEY
+        sync: false
+      # Ollama Cloud host
+      - key: OLLAMA_HOST
+        value: https://ollama.com
+      # Embedding için kullanılacak Ollama Cloud endpoint
+      - key: OLLAMA_EMBED_URL
+        value: https://ollama.com/api/embed
+      # Embedding modeli (bge-m3: 1024 boyut, çok dilli)
+      - key: EMBED_MODEL
+        value: bge-m3
+      # Chat LLM modeli
+      - key: LLM_MODEL
+        value: gpt-oss:120b-cloud

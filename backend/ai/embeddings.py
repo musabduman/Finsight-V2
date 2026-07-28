@@ -1,7 +1,7 @@
 import os
 import requests
 
-OLLAMA_EMBED_URL = os.getenv("OLLAMA_EMBED_URL", "http://localhost:11434/api/embed")
+OLLAMA_EMBED_URL = os.getenv("OLLAMA_EMBED_URL", "https://ollama.com")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "bge-m3")  # çok dilli, 1024 boyut — db.py'deki VECTOR(1024) ile uyumlu
 
 

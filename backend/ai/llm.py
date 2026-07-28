@@ -1,89 +1,106 @@
 import os
-import requests
 from ollama import Client
 from fastapi import APIRouter, HTTPException
-from schemas import ChatRequest
+from backend.database.schema import ChatRequest
 from backend.ai.embeddings import embed_query
 from backend.database.db import search_similar_events
 
 router = APIRouter()
 
-class BaseLLM:
-    def build_prompt(self,*args,**kwargs):
-        raise NotImplementedError
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY")
+LLM_MODEL = os.getenv("LLM_MODEL", "llama3.1")
 
-    def ask_ollama(self,prompt):
-        raise NotImplementedError
-    def __call__(self,*args,**kwargs):
-        prompt=self.build_prompt(*args,**kwargs)
-        return self.generate(prompt)
+SYSTEM_PROMPT = (
+    "Sen FinSight adlı bir BIST hisse analiz asistanısın. "
+    "Geleceği tahmin etmezsin. Sana verilen 'geçmiş örnekler' varsa "
+    "cevabını onlara dayandırıp benzerlik kurarsın; yoksa dikkatli ve kısa "
+    "bir genel yorum yaparsın. Her zaman net, anlaşılır Türkçe konuşursun. "
+    "Yatırım tavsiyesi vermezsin, tarihsel örüntü paylaşırsın."
+)
 
 
-class OllamaChat(BaseLLM):
-    def __init__(self, api_key=None, model="gpt-oss:120b-cloud"):
-        self.model = model
-        self.api_key = api_key or os.getenv("OLLAMA_API_KEY")
-        if not self.api_key:
-            raise ValueError("OLLAMA_API_KEY must be set in the environment or provided.")
-        self.client = Client(
-            host="https://ollama.com",
-            headers={"Authorization": f"Bearer {self.api_key}"}
-        )
+def _get_client() -> Client:
+    """OLLAMA_API_KEY varsa Cloud, yoksa yerel Ollama bağlantısı açar."""
+    kwargs: dict = {"host": OLLAMA_HOST}
+    if OLLAMA_API_KEY:
+        kwargs["headers"] = {"Authorization": f"Bearer {OLLAMA_API_KEY}"}
+    return Client(**kwargs)
 
-    def build_prompt(self, mesaj_gecmisi, aktif_baglam=""):
-        
-        # 🔥 HER MESAJDA YENİ HABER ÇEK (dinamik)
-        """     
-        dinamik_haber = get_memory_for_llm(
-            query="BIST son haberler finans piyasa",
-            limit=7
-        )
-        """
-
-        system_content = f"""
-            "Sen FinSight adlı bir BIST hisse analiz asistanısın. Geleceği tahmin etmezsin; "
-            "sana verilen 'geçmiş örnekler' varsa cevabını onlara dayandırıp benzerlik kurarsın, "
-            "yoksa dikkatli ve kısa bir genel yorum yaparsın. Her zaman net ve Türkçe konuşursun."
-        """
-
-        messages = [{"role": "system", "content": system_content}]
-        messages.extend(mesaj_gecmisi)
-        return messages
-
-    def ask_ollama(self, chat_question, events):
-        messages = self.build_prompt(chat_question, build_context(events))
-
-        try:
-            response = self.client.chat(
-                model=self.model,
-                messages=messages,
-                options={
-                    "temperature": 0.5,
-                    "num_predict": 400
-                }
-            )
-
-            return response["message"]["content"].strip()
-
-        except Exception as e:
-            return f"⚠️ Chat error: {e}"
-            
-    @router.post("/ask")
-    def ask(chat: ChatRequest):
-        """RAG akışı: soruyu embed et → pgvector'da benzer geçmiş olayları bul → Ollama'dan cevap üret."""
-        query_vec = embed_query(chat.question)
-        events = search_similar_events(query_vec, ticker=chat.ticker, k=3)
-        chatbot = OllamaChat()
-        answer = chatbot.ask_ollama(chat.question, build_context(events))
-        return {"success": True, "answer": answer, "sources": events}
 
 def build_context(events: list) -> str:
     """pgvector'dan dönen benzer geçmiş olayları LLM promptuna eklenecek metne çevirir."""
     if not events:
         return "Geçmiş veritabanında bu soruya yakın bir örnek bulunamadı."
-    satirlar = []
+    lines = []
     for e in events:
-        etki = f"sonraki günlerde %{e['price_change_pct']}" if e["price_change_pct"] is not None else "fiyat etkisi bilinmiyor"
-        satirlar.append(f"- [{e['ticker']} | {e['published_at']}] {e['title']} → {etki} (benzerlik: {e['similarity']:.2f})")
-    return "\n".join(satirlar)
+        etki = (
+            f"sonraki günlerde %{e['price_change_pct']} değişim"
+            if e["price_change_pct"] is not None
+            else "fiyat etkisi bilinmiyor"
+        )
+        lines.append(
+            f"- [{e['ticker']} | {e['published_at']}] {e['title']} "
+            f"→ {etki} (benzerlik skoru: {e['similarity']:.2f})"
+        )
+    return "\n".join(lines)
 
+
+def generate_answer(question: str, context: str) -> str:
+    """Ollama'ya sistem promptu + kullanıcı sorusu + RAG bağlamı göndererek cevap üretir."""
+    client = _get_client()
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": f"Soru: {question}\n\nGeçmiş Benzer Örnekler:\n{context}",
+        },
+    ]
+    try:
+        response = client.chat(
+            model=LLM_MODEL,
+            messages=messages,
+            options={"temperature": 0.5, "num_predict": 400},
+        )
+        return response["message"]["content"].strip()
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"LLM servisi yanıt vermedi: {e}",
+        )
+
+
+@router.post("/ask")
+def ask(chat: ChatRequest):
+    """RAG akışı: soruyu embed et → pgvector'da benzer geçmiş olayları bul → Ollama cevap üret."""
+    # 1. Embedding + vektör arama (DB yoksa graceful fallback)
+    events = []
+    try:
+        query_vec = embed_query(chat.question)
+        events = search_similar_events(query_vec, ticker=chat.ticker, k=3)
+    except Exception as e:
+        print(f"⚠️  RAG arama başarısız (DB/embedding sorun): {e}")
+
+    # 2. Bağlamı string'e çevir
+    context = build_context(events)
+
+    # 3. LLM ile cevap üret
+    answer = generate_answer(chat.question, context)
+
+    # 4. events listesini JSON-serializable yap
+    sources = [
+        {
+            "ticker": e["ticker"],
+            "title": e["title"],
+            "published_at": str(e["published_at"]),
+            "similarity": round(float(e["similarity"]), 3),
+            "price_change_pct": (
+                round(float(e["price_change_pct"]), 2)
+                if e["price_change_pct"] is not None
+                else None
+            ),
+        }
+        for e in events
+    ]
+
+    return {"success": True, "answer": answer, "sources": sources}

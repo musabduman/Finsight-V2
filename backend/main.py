@@ -3,9 +3,11 @@ load_dotenv()  # DATABASE_URL, JWT_SECRET vb. .env'den okunsun diye db.py import
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from db import init_db
-from auth import router as auth_router
-from llm import router as chat_router
+from fastapi.staticfiles import StaticFiles  # <-- YENİ EKLENDİ
+
+from backend.database.db import init_db
+from backend.database.auth import router as auth_router
+from backend.ai.llm import router as chat_router
 
 app = FastAPI(title="FinSight API")
 
@@ -15,6 +17,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# <-- YENİ EKLENDİ: Frontend klasörünü statik dosya olarak dışarı açıyoruz
+app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
 
 
 @app.on_event("startup")
@@ -30,4 +35,7 @@ app.include_router(chat_router, prefix="/chat", tags=["chat"])
 @app.get("/")
 def health():
     """Basit sağlık kontrolü."""
-    return {"status": "ok"}
+    return {
+        "status": "ok", 
+        "message": "FinSight API çalışıyor. Arayüz için /frontend/finsight-v2.html adresine gidin."
+    }
